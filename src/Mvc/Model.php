@@ -96,7 +96,7 @@ abstract class Model
 			$instance->$key = $value;
 		}
 
-		$instance->save(); // INSERT oder UPSERT
+		$instance->save(); // INSERT or UPDATE
 		return $instance;
 	}
 
@@ -396,7 +396,7 @@ abstract class Model
 			return $this->__performUpdate($changed);
 		}
 
-		return $this->__performWrite($changed, true);
+		return $this->__performWrite($changed, false);
 	}
 
 	/**

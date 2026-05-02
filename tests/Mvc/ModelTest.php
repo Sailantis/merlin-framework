@@ -5,6 +5,8 @@ require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../Db/TestDatabase.php';
 
 use Merlin\AppContext;
+use Merlin\Db\Query;
+use Merlin\Mvc\ModelMapping;
 use Merlin\Tests\Db\TestPgDatabase;
 use PHPUnit\Framework\TestCase;
 
@@ -34,6 +36,14 @@ class DummyDefaultedModel extends \Merlin\Mvc\Model
 
 class ModelTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        AppContext::setInstance(new AppContext());
+        ModelMapping::usePluralTableNames(false);
+        Query::useModels(true);
+        Query::setModelMapping(null);
+    }
+
     public function testStateSaveLoadAndHasChanged(): void
     {
         $db = new TestPgDatabase();
@@ -128,6 +138,28 @@ class ModelTest extends TestCase
         $this->assertStringContainsString("'Echo'", $query['sql']);
         $this->assertSame(9, $model->id);
         $this->assertSame('2026-04-05 12:00:00', $model->created_at);
+    }
+
+    public function testSaveForNewModelDoesNotUsePrimaryKeyUpsert(): void
+    {
+        $db = new TestPgDatabase();
+        AppContext::instance()->dbManager()->set('default', $db);
+        $db->setMockResults([
+            [
+                ['id' => 15, 'name' => 'Golf']
+            ]
+        ]);
+
+        $model = new DummyModel();
+        $model->name = 'Golf';
+
+        $this->assertTrue($model->save());
+
+        $query = $db->getLastQuery();
+        $this->assertNotNull($query);
+        $this->assertStringContainsString('INSERT INTO "dummy_model"', $query['sql']);
+        $this->assertStringNotContainsString('ON CONFLICT', strtoupper($query['sql']));
+        $this->assertSame(15, $model->id);
     }
 
     public function testFindHydratesModelInstance(): void
