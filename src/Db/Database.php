@@ -51,7 +51,8 @@ class Database
 		string $user = "",
 		string $pass = "",
 		array $options = []
-	) {
+	)
+	{
 		$this->connectString = $dsn;
 		$this->user = $user;
 		$this->pass = $pass;
@@ -128,7 +129,8 @@ class Database
 		float $maxRetryDelay = 30.0,
 		bool $jitter = true,
 		?callable $onReconnect = null
-	): static {
+	): static
+	{
 		$this->autoReconnect = [
 			'enabled' => $enabled,
 			'maxAttempts' => $maxAttempts > 0 ? $maxAttempts : null,
@@ -151,22 +153,22 @@ class Database
 	}
 
 	/**
-	 * Execute a SQL query with optional parameters and return the resulting statement or success status.
-	 * @param string $query SQL query to execute
+	 * Execute a SQL statement with optional parameters and return the resulting statement or success status.
+	 * @param string $statement SQL statement to execute
 	 * @param array|null $params Optional parameters for prepared statements
 	 * @return bool|PDOStatement
 	 * @throws Exception
 	 */
-	public function query(string $query, ?array $params = null): bool|PDOStatement
+	public function query(string $statement, ?array $params = null): bool|PDOStatement
 	{
 		retry:
 		try {
-			$this->fire('db.beforeQuery', $query, $params);
+			$this->fire('db.beforeQuery', $statement, $params);
 			if (!empty($params)) {
-				$stmt = $this->pdo->prepare($query);
+				$stmt = $this->pdo->prepare($statement);
 				$stmt->execute($params);
 			} else {
-				$stmt = $this->pdo->query($query);
+				$stmt = $this->pdo->query($statement);
 			}
 			if ($stmt === false) {
 				if ($stmt === false) {
@@ -180,7 +182,7 @@ class Database
 			$this->processPdoException($exception);
 			goto retry;
 		} finally {
-			$this->fire('db.afterQuery', $query, $params);
+			$this->fire('db.afterQuery', $statement, $params);
 		}
 		$this->statement = $stmt;
 		return ($stmt->columnCount() > 0) ? $stmt : true;
@@ -188,16 +190,16 @@ class Database
 
 	/**
 	 * Prepare a SQL statement and return the resulting PDOStatement object.
-	 * @param string $query SQL query to prepare
+	 * @param string $statement SQL statement to prepare
 	 * @return PDOStatement
 	 * @throws \Exception
 	 */
-	public function prepare(string $query): bool|PDOStatement
+	public function prepare(string $statement): bool|PDOStatement
 	{
 		retry:
 		try {
-			$this->fire('db.beforePrepare', $query);
-			$stmt = $this->pdo->prepare($query);
+			$this->fire('db.beforePrepare', $statement);
+			$stmt = $this->pdo->prepare($statement);
 			if ($stmt === false) {
 				$info = $this->pdo->errorInfo();
 				$ex = new PDOException($info[2] ?? 'Unknown error');
@@ -208,7 +210,7 @@ class Database
 			$this->processPdoException($exception);
 			goto retry;
 		} finally {
-			$this->fire('db.afterPrepare', $query);
+			$this->fire('db.afterPrepare', $statement);
 		}
 		$this->statement = $stmt;
 		return $stmt;
@@ -250,7 +252,6 @@ class Database
 		return ($this->statement->columnCount() > 0) ? $this->statement : true;
 	}
 
-
 	/**
 	 * @param PDOException $exception
 	 * @throws Exception
@@ -260,9 +261,12 @@ class Database
 		$this->fire('db.exception', $exception);
 		$inTransaction = !empty($this->transactionLevel);
 		switch ($exception->errorInfo[1]) {
-			case 1213: // Error: 1213 SQLSTATE: 40001 (ER_LOCK_DEADLOCK)
-			case '40P01': // PGSQL: 40P01 – deadlock_detected
-			case 40001: // Deadlock or timeout with automatic rollback occurred.
+			case 1213:
+				// Error: 1213 SQLSTATE: 40001 (ER_LOCK_DEADLOCK)
+			case '40P01':
+				// PGSQL: 40P01 – deadlock_detected
+			case 40001:
+				// Deadlock or timeout with automatic rollback occurred.
 				if ($inTransaction) {
 					throw new TransactionLostException(
 						"Deadlock found when trying to get lock; try restarting transaction",
@@ -272,11 +276,14 @@ class Database
 				}
 				// Re-run last command
 				return;
-			case 2006: // Error: 2006 (CR_SERVER_GONE_ERROR)
-			case 2013: // Error: 2013 (CR_SERVER_LOST)
+			case 2006:
+				// Error: 2006 (CR_SERVER_GONE_ERROR)
+			case 2013:
+				// Error: 2013 (CR_SERVER_LOST)
 			case 8001:
 			case 8004:
-			case 8006: // PGSQL: 8006 Connection Exception
+			case 8006:
+				// PGSQL: 8006 Connection Exception
 				$this->handleReconnect($exception);
 				// Re-run last command
 				return;
@@ -299,7 +306,7 @@ class Database
 		$inTransaction = !empty($this->transactionLevel);
 
 		// Get configuration with defaults
-		$maxAttempts = $config['maxAttempts'] ?? null;  // null = unlimited
+		$maxAttempts = $config['maxAttempts'] ?? null; // null = unlimited
 		$retryDelay = $config['retryDelay'] ?? 1.0;
 		$backoffMultiplier = $config['backoffMultiplier'] ?? 2.0;
 		$maxRetryDelay = $config['maxRetryDelay'] ?? 30.0;
@@ -318,7 +325,8 @@ class Database
 			);
 
 			// Sleep with optional jitter
-			if ($attempt > 1) {  // Don't sleep on first attempt
+			if ($attempt > 1) {
+				// Don't sleep on first attempt
 				$sleepTime = $currentDelay;
 				if ($useJitter) {
 					// Add ±25% jitter to prevent thundering herd
@@ -327,13 +335,13 @@ class Database
 				}
 
 				if ($sleepTime >= 1) {
-					sleep((int) $sleepTime);
-					$remaining = $sleepTime - (int) $sleepTime;
+					sleep((int)$sleepTime);
+					$remaining = $sleepTime - (int)$sleepTime;
 					if ($remaining > 0) {
-						usleep((int) ($remaining * 1000000));
+						usleep((int)($remaining * 1000000));
 					}
 				} else {
-					usleep((int) ($sleepTime * 1000000));
+					usleep((int)($sleepTime * 1000000));
 				}
 			}
 
@@ -444,10 +452,12 @@ class Database
 				$ex->errorInfo = $info;
 				throw $ex;
 			}
-			$stmt->execute([
-				':table' => $table,
-				':field' => $field
-			]);
+			$stmt->execute(
+				[
+					':table' => $table,
+					':field' => $field
+				]
+			);
 			return $stmt->fetchColumn();
 		}
 		return $this->pdo->lastInsertId();

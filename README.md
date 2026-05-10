@@ -1,8 +1,10 @@
-# Merlin MVC Framework
+# Merlin - PHP Web Framework
 
 ![Merlin Logo](docs/images/merlin-logo-text-opt.svg)
 
-A lightweight, fast PHP framework for building modern MVC web applications and CLI tools. Merlin combines the best ideas from frameworks like Phalcon, CodeIgniter, Laravel and Twig into a minimal yet powerful toolkit.
+### Lightweight by Design. Powerful in Practice.
+
+A lightweight, fast PHP framework for building modern Web applications and CLI tools. Merlin combines the best ideas from frameworks like Phalcon, CodeIgniter, Laravel and Symfony into a minimal yet powerful toolkit.
 
 ## Why Merlin?
 

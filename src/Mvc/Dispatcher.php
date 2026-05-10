@@ -156,7 +156,7 @@ class Dispatcher
         $override = $routeInfo['override'] ?? [];
 
         if (!empty($override['namespace'])) {
-            $namespace = rtrim((string) $override['namespace'], '\\');
+            $namespace = rtrim((string)$override['namespace'], '\\');
             if (empty($namespace)) {
                 $namespace = $this->baseNamespace;
             } elseif ($namespace[0] !== '\\' && !empty($this->baseNamespace)) {
@@ -168,22 +168,22 @@ class Dispatcher
                 if ($namespace !== '') {
                     $namespace .= '\\';
                 }
-                $namespace .= $this->camelize((string) $vars['namespace']);
+                $namespace .= $this->camelize((string)$vars['namespace']);
             }
         }
 
         if (!empty($override['controller'])) {
-            $controllerName = (string) $override['controller'];
+            $controllerName = (string)$override['controller'];
         } elseif (!empty($vars['controller'])) {
-            $controllerName = $this->camelize((string) $vars['controller']) . 'Controller';
+            $controllerName = $this->camelize((string)$vars['controller']) . 'Controller';
         } else {
             $controllerName = $this->defaultController;
         }
 
         if (!empty($override['action'])) {
-            $actionName = (string) $override['action'];
+            $actionName = (string)$override['action'];
         } elseif (!empty($vars['action'])) {
-            $actionName = $this->camelize((string) $vars['action'], false) . 'Action';
+            $actionName = $this->camelize((string)$vars['action'], false) . 'Action';
         } else {
             $actionName = $this->defaultAction;
         }
@@ -214,15 +214,17 @@ class Dispatcher
             $this->context
         );
 
-        $this->context->setRoute(new ResolvedRoute(
-            $namespace,
-            $controllerClass,
-            $actionName,
-            $params,
-            $vars,
-            $groups,
-            $override
-        ));
+        $this->context->setRoute(
+            new ResolvedRoute(
+                $namespace,
+                $controllerClass,
+                $actionName,
+                $params,
+                $vars,
+                $groups,
+                $override
+            )
+        );
 
         $pipeline = $this->buildPipeline(
             $controller,
@@ -242,7 +244,8 @@ class Dispatcher
         string $action,
         array $routeParams,
         AppContext $context
-    ): array {
+    ): array
+    {
 
         try {
             $ref = new \ReflectionMethod($controller, $action);
@@ -277,9 +280,9 @@ class Dispatcher
             if (isset($routeParams[$name])) {
                 $value = $routeParams[$name];
 
-                // Variadic wildcard support 
+                // Variadic wildcard support
                 if ($param->isVariadic()) {
-                    $array = (array) $value;
+                    $array = (array)$value;
                     foreach ($array as $value) {
                         $args[] = $value;
                     }
@@ -348,29 +351,28 @@ class Dispatcher
         foreach ($types as $t) {
 
             switch ($t) {
-
                 case 'int':
-                    if (\ctype_digit((string) $value)) {
-                        return (int) $value;
+                    if (\ctype_digit((string)$value)) {
+                        return (int)$value;
                     }
                     break;
 
                 case 'float':
-                    if (\is_numeric((string) $value)) {
-                        return (float) $value;
+                    if (\is_numeric((string)$value)) {
+                        return (float)$value;
                     }
                     break;
 
                 case 'bool':
                     // true/false/1/0/yes/no/on/off
-                    $filtered = \filter_var((string) $value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
+                    $filtered = \filter_var((string)$value, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE);
                     if ($filtered !== null) {
                         return $filtered;
                     }
                     break;
 
                 case 'string':
-                    return (string) $value;
+                    return (string)$value;
 
                 case 'array':
                     if (\is_array($value)) {
@@ -385,7 +387,6 @@ class Dispatcher
 
         return $value;
     }
-
 
     protected function camelize(string $string, bool $beginUpper = true): string
     {
@@ -486,27 +487,29 @@ class Dispatcher
         }
 
         if ($mw instanceof \Closure) {
-            return new class ($mw) implements MiddlewareInterface {
-                public function __construct(private \Closure $fn)
-                {}
-                public function process($ctx, $next): ?Response
-                {
-                    return ($this->fn)($ctx, $next);
-                }
-            };
+            $instance = $mw();
+        } else {
+            if (\is_array($mw)) {
+                $className = $mw[0] ?? null;
+                $args = $mw[1] ?? [];
+            } else {
+                $className = $mw;
+                $args = [];
+            }
+            if (!is_string($className)) {
+                throw new InvalidArgumentException("Middleware class name must be a string");
+            }
+            if (!class_exists($className)) {
+                throw new InvalidArgumentException("Middleware class {$className} does not exist");
+            }
+            $instance = new $className(...$args);
         }
 
-        if (\is_array($mw)) {
-            if (!isset($mw[0])) {
-                throw new InvalidArgumentException("Middleware array must have a class name at index 0");
-            }
-            if (!isset($mw[1])) {
-                $mw[1] = [];
-            }
-            return new $mw[0](...$mw[1]);
+        if (!$instance instanceof MiddlewareInterface) {
+            throw new \RuntimeException("Factory did not return MiddlewareInterface");
         }
 
-        return new $mw();
+        return $instance;
     }
 
     protected function invokeController(Controller $controller, string $action, array $params): Response
@@ -529,19 +532,19 @@ class Dispatcher
             return $result;
         }
 
-        if (\is_array($result))
+        if (\is_array($result)) {
             return Response::json($result);
-        elseif ($result instanceof \JsonSerializable)
+        } elseif ($result instanceof \JsonSerializable) {
             return Response::json($result->jsonSerialize());
-        elseif (\is_string($result))
+        } elseif (\is_string($result)) {
             return Response::html($result);
-        elseif (\is_int($result))
+        } elseif (\is_int($result)) {
             return Response::status($result);
-        elseif ($result === null)
-            return Response::status(204); // No Content
-        else
+        } elseif ($result === null) {
+            return Response::status(204);
+        } else {
             throw new \UnexpectedValueException("Unsupported controller action return type: " . \get_debug_type($result));
+        }
     }
-
 
 }

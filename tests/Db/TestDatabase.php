@@ -44,7 +44,7 @@ class TestDatabase extends \Merlin\Db\Database
         if ($str === null) {
             return 'NULL';
         }
-        return "'" . str_replace("'", "''", (string) $str) . "'";
+        return "'" . str_replace("'", "''", (string)$str) . "'";
     }
 
     /**
@@ -70,7 +70,7 @@ class TestDatabase extends \Merlin\Db\Database
     /**
      * Mock prepare - logs the query
      */
-    public function prepare($query): TestPdoStatement
+    public function prepare($statement): TestPdoStatement
     {
         return new TestPdoStatement($this->getNextMockResult());
     }
@@ -156,7 +156,7 @@ class TestDatabase extends \Merlin\Db\Database
 
     public function lastInsertId($table = null, $field = null): string
     {
-        return (string) $this->lastInsertId;
+        return (string)$this->lastInsertId;
     }
 
     /**
@@ -248,24 +248,24 @@ class TestPdoStatement extends \PDOStatement
         }
 
         $row = $this->results[$this->position++];
-		$mode = $mode === \PDO::FETCH_BOTH ? $this->fetchMode : $mode;
+        $mode = $mode === \PDO::FETCH_BOTH ? $this->fetchMode : $mode;
 
         switch ($mode) {
             case \PDO::FETCH_CLASS:
-				if ($this->fetchClass === null) {
-					return false;
-				}
-				$object = new $this->fetchClass();
-				foreach ($row as $key => $value) {
-					$object->$key = $value;
-				}
-				return $object;
+                if ($this->fetchClass === null) {
+                    return false;
+                }
+                $object = new $this->fetchClass();
+                foreach ($row as $key => $value) {
+                    $object->$key = $value;
+                }
+                return $object;
             case \PDO::FETCH_ASSOC:
                 return $row;
             case \PDO::FETCH_NUM:
                 return array_values($row);
             case \PDO::FETCH_OBJ:
-                return (object) $row;
+                return (object)$row;
             case \PDO::FETCH_BOTH:
             default:
                 return array_merge($row, array_values($row));
