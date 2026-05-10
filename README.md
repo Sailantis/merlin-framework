@@ -171,6 +171,7 @@ class User extends \Merlin\Mvc\Model
     public int $id;
     public string $username;
     public string $email;
+    public string $status;
 }
 
 // Find by primary key
